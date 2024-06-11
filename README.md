@@ -9,9 +9,12 @@ This section contains information on how to use this repo.
 
 This folder contains the files necessary to run the data capture from the civitai postgres database and the code to download images from that dataset locally for labeling.
 
-1. run `python pip install requirements.txt`
-2. run `getData.ipynb` changing the query as necessary
-3. run `downloadData.ipynb` to save files locally
+1. run `python -m venv venv` to set up a local virtual env
+2. then to get dependencies activate the venv and run `pip install requirements.txt`
+3. run `getData.ipynb` changing the query as necessary
+4. run `downloadData.ipynb` to save files locally
+
+After this we're ready to run `main.py` in `src`
 
 ### Datalabeler
 
