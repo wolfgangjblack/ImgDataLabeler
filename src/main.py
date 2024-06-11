@@ -1,6 +1,6 @@
 import os
 import argparse
-from utils import get_image_list, BoundingBoxAnnotator, boundingBoxExplainer
+from utils import get_image_list, BoundingBoxAnnotator, boundingBoxExplainer, ClassifierAnnotator, classifierExplainer
 
 
 def main(args):
@@ -29,8 +29,11 @@ def main(args):
     if args.mode == 'boundingbox':
         boundingBoxExplainer()
         annotator = BoundingBoxAnnotator(image_list, output, args.classes)
+    elif args.mode == 'classifier':
+        classifierExplainer()
+        annotator = ClassifierAnnotator(image_list, output, args.classes)
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Invalid mode. Please choose either 'boundingbox' or 'classifier'.")
     annotator.run()
 
 if __name__ == "__main__":
