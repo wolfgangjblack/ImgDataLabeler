@@ -47,10 +47,13 @@ This mode allows you to draw bounding boxes around objects in images based on th
 This mode allows the user to provide classes to the datalabeler to label single class classifications. The classes become buttons below the image, which the user can click to label the image. Right now only single image classification is supported. 
 
 ##### Instructions:
-- When calling the script, make sure to set mode to `classifier` and include the classes you want to label. If you believe you have images which may fall outside of the labels you want, pass `None` as the final class which serves as a label that can be ignored in the pre-training step.
-- Look at the image and determine which of the provided class buttons best represent the image. Click that button
+- When calling the script, make sure to set mode to `classifier` and include the classes you want to label. 
+- Look at the image and determine which of the provided class buttons best represent the image.
+    - to select those classes, click the buttons
 - Press 'n' to move to the next image 
     - do this once you've clicked on the class corresponding to the current image
-    - unlike `bounding box` mode, `n` will not move to the next image if a class hasn't been specified
+    - if you click 'n' without selecting a class, the image will be skipped
+- Press 'c' to clear all selected classes for the current image
 - Press 'q' to quit the annotation process 
     - this will save the annotations and exit the script
+    - note: if you have selected classes and hit 'q' before hitting 'n', the labels will not be saved to the output json

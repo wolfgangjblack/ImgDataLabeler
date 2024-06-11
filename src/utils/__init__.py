@@ -160,94 +160,87 @@ class ClassifierAnnotator:
         self.image_files = image_files
         self.current_image_index = 0
         self.classes = classes
-        self.current_class = None
+        self.selected_classes = []
 
         self.root = tk.Tk()
-        self.root.title("Classification Annotator")
+        self.root.title("Classifier Annotator")
 
-        self.image_label = tk.Label(self.root)
-        self.image_label.pack()
-
+        self.canvas = tk.Canvas(self.root, width=800, height=850) # Fixed size canvas
+        self.canvas.pack()
+        
         self.button_frame = tk.Frame(self.root)
         self.button_frame.pack()
 
-        self.class_buttons = []
-        for class_name in self.classes:
-            ## Builds out class buttons
-            btn = ttk.Button(self.button_frame, text=class_name, command=lambda c = class_name: self.label_image(c))
-            btn.pack(side=tk.LEFT, padx = 5, pady = 5)
-            self.class_buttons.append(btn)
-        
-        self.info_label = tk.Label(self.root, text="", font=("Helvetica", 12))
+        self.buttons = []
+        for cls in classes:
+            btn = tk.Button(self.button_frame, text=cls, command=lambda c=cls: self.select_class(c))
+            btn.pack(side=tk.LEFT)
+            self.buttons.append(btn)
+
+        self.info_label = tk.Label(self.root, text="")
         self.info_label.pack()
 
-        self.message_label = tk.Label(self.root, text="", font=("Helvetica", 12))
-        self.message_label.pack()
-        
-        self.display_image()
-        self.root.bind('<KeyPress>', self.key_press)
+        self.root.bind('<n>', self.next_image)
+        self.root.bind('<c>', self.clear_classes)
+        self.root.bind('<q>', self.quit)
 
-    def display_image(self):
+        self.update_image()
+
+    def select_class(self, class_name):
+        if class_name not in self.selected_classes:
+            self.selected_classes.append(class_name)
+        self.update_info_label()
+
+    def update_image(self):
         image_path = self.image_files[self.current_image_index]
-        image = cv2.imread(image_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        img = Image.open(image_path)
+        img.thumbnail((800, 800))
+        
+        ##Resizing the image
+        canvas_image = Image.new("RGB", (800, 800), (255, 255, 255))
+        img_width, img_height = img.size
+        offset = ((800 - img_width) // 2, (800 - img_height) // 2)
+        canvas_image.paste(img, offset)
+        
+        self.img_tk = ImageTk.PhotoImage(canvas_image)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.img_tk)
+        self.update_info_label()
 
-        ## Resize the image to fit the window
-        img_height, img_width = image.shape[:2]
-        max_height = 800
-        max_width = 800
-        scale = min(max_height/img_height, max_width/img_width)
-        new_size = (int(img_width*scale), int(img_height*scale))
-        image = cv2.resize(image, new_size)
+    def update_info_label(self):
+        image_name = os.path.basename(self.image_files[self.current_image_index])
+        selected_classes_str = ", ".join(self.selected_classes)
+        self.info_label.config(text=f"Image: {image_name}\nSelected classes: {selected_classes_str}\nIf okay, hit 'n'")
 
-        ##Create a blank window for uniform view
-        final_image = 255*np.ones((max_height, max_width, 3), np.uint8)
-
-        y_offset = (max_height - new_size[1]) // 2
-        x_offset = (max_width - new_size[0]) // 2
-
-        #place the reized image OVER the blank image
-        final_image[y_offset:y_offset + new_size[1], x_offset:x_offset + new_size[0]] = image
-
-        image = Image.fromarray(final_image)
-        image = ImageTk.PhotoImage(image)
-        self.image_label.config(image=image)
-        self.image_label.image = image
-
-        image_name = os.path.basename(image_path)
-        self.info_label.config(text=f"Image: {image_name}")
-        self.message_label.config(text="")
-
-    def label_image(self, label):
-        self.current_class = label
-        self.message_label.config(text=f"Selected label: {label}, if okay hit 'n'")
-
-    def key_press(self, event):
-        if event.char == 'n' and self.current_class:
-            
+    def save_annotations(self):
+        if self.selected_classes:
             annotation = {
-            'image': self.image_files[self.current_image_index],
-            'class': self.current_class }
-
+                'image': self.image_files[self.current_image_index],
+                'classes': self.selected_classes
+            }
             self.annotations.append(annotation)
-            self.current_image_index += 1
-            self.current_class = None
-            if self.current_image_index < len(self.image_files):
-                self.display_image() 
-            else:
-                self.save_annotations_to_file()
-                self.root.quit()
-        elif event.char == 'q':
+        self.selected_classes = []
+
+    def next_image(self, event=None):
+        self.save_annotations()
+        self.current_image_index += 1
+        if self.current_image_index < len(self.image_files):
+            self.update_image()
+        else:
             self.save_annotations_to_file()
-            self.root.quit()
+            self.root.destroy()
+
+    def clear_classes(self, event=None):
+        self.selected_classes = []
+        self.update_info_label()
+
+    def quit(self, event=None):
+        self.save_annotations_to_file()
+        self.root.destroy()
 
     def save_annotations_to_file(self):
-        if os.path.isdir(os.path.dirname(self.output_file)) == False:
-            os.makedirs(os.path.dirname(self.output_file))
-
         with open(self.output_file, 'w') as f:
             json.dump(self.annotations, f, indent=4)
-    
+
     def run(self):
         self.root.mainloop()
 
@@ -257,10 +250,14 @@ The script is running in classification mode. This mode allows you to classify i
 
     Instructions:
         Click on the class buttons to assign a label to the current image
+            - You can click on multiple classes for the same image
         Press 'n' to move to the next image 
             - do this if you are done annotating the current image
+            - if you click 'n' without selecting a class, the image will be skipped
+        Press 'c' to clear all classes for the current image
         Press 'q' to quit the annotation process 
             - this will save the annotations and exit the script
     """
     print(explanation)
     return
+
