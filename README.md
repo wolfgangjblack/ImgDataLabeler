@@ -18,11 +18,11 @@ This folder contains the files necessary to run the data capture from the civita
 `python main.py [--mode MODE] [--image_dir IMAGE_DIR] [--output_dir OUTPUT_DIR] [--output_file OUTPUT_FILE] [--classes CLASSES]`
 
 Arguments:
-    - --mode (str): Mode of annotation (boundingBox or Classification). Default is 'boundingbox'.
-    - --image_dir (str): Directory of images to process. Default is './data/testimgs/'.
-    - --output_dir (str): Where to save output data. Default is './data/results/'.
-    - --output_file (str): Output file name. Default is 'annotations.json'.
-    - --classes (str): List of class names. Default is ['face'].
+- --mode (str): Mode of annotation (boundingBox or Classification). Default is 'boundingbox'.
+- --image_dir (str): Directory of images to process. Default is './data/testimgs/'.
+- --output_dir (str): Where to save output data. Default is './data/results/'.
+- --output_file (str): Output file name. Default is 'annotations.json'.
+- --classes (str): List of class names. Default is ['face'].
 
 #### --mode boundingbox
 
