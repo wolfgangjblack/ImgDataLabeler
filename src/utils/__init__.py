@@ -3,7 +3,10 @@ import cv2
 import json
 import random
 import numpy as np
+import tkinter as tk
 from tqdm import tqdm
+from tkinter import ttk
+from PIL import Image, ImageTk
 
 def get_image_list(image_dir):
     image_list = []
@@ -124,6 +127,9 @@ class BoundingBoxAnnotator:
         cv2.destroyAllWindows()
 
     def save_annotations_to_file(self):
+        if os.path.isdir(os.path.dirname(self.output_file)) == False:
+            os.makedirs(os.path.dirname(self.output_file))
+
         with open(self.output_file, 'w') as f:
             json.dump(self.annotations, f, indent=4)
 
@@ -147,3 +153,114 @@ The script is running in bounding box mode. This mode allows you to draw boundin
     print(explanation)
     return
 
+class ClassifierAnnotator:
+    def __init__(self, image_files, output_file, classes):
+        self.output_file = output_file
+        self.annotations = []
+        self.image_files = image_files
+        self.current_image_index = 0
+        self.classes = classes
+        self.current_class = None
+
+        self.root = tk.Tk()
+        self.root.title("Classification Annotator")
+
+        self.image_label = tk.Label(self.root)
+        self.image_label.pack()
+
+        self.button_frame = tk.Frame(self.root)
+        self.button_frame.pack()
+
+        self.class_buttons = []
+        for class_name in self.classes:
+            ## Builds out class buttons
+            btn = ttk.Button(self.button_frame, text=class_name, command=lambda c = class_name: self.label_image(c))
+            btn.pack(side=tk.LEFT, padx = 5, pady = 5)
+            self.class_buttons.append(btn)
+        
+        self.info_label = tk.Label(self.root, text="", font=("Helvetica", 12))
+        self.info_label.pack()
+
+        self.message_label = tk.Label(self.root, text="", font=("Helvetica", 12))
+        self.message_label.pack()
+        
+        self.display_image()
+        self.root.bind('<KeyPress>', self.key_press)
+
+    def display_image(self):
+        image_path = self.image_files[self.current_image_index]
+        image = cv2.imread(image_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        ## Resize the image to fit the window
+        img_height, img_width = image.shape[:2]
+        max_height = 800
+        max_width = 800
+        scale = min(max_height/img_height, max_width/img_width)
+        new_size = (int(img_width*scale), int(img_height*scale))
+        image = cv2.resize(image, new_size)
+
+        ##Create a blank window for uniform view
+        final_image = 255*np.ones((max_height, max_width, 3), np.uint8)
+
+        y_offset = (max_height - new_size[1]) // 2
+        x_offset = (max_width - new_size[0]) // 2
+
+        #place the reized image OVER the blank image
+        final_image[y_offset:y_offset + new_size[1], x_offset:x_offset + new_size[0]] = image
+
+        image = Image.fromarray(final_image)
+        image = ImageTk.PhotoImage(image)
+        self.image_label.config(image=image)
+        self.image_label.image = image
+
+        image_name = os.path.basename(image_path)
+        self.info_label.config(text=f"Image: {image_name}")
+        self.message_label.config(text="")
+
+    def label_image(self, label):
+        self.current_class = label
+        self.message_label.config(text=f"Selected label: {label}, if okay hit 'n'")
+
+    def key_press(self, event):
+        if event.char == 'n' and self.current_class:
+            
+            annotation = {
+            'image': self.image_files[self.current_image_index],
+            'class': self.current_class }
+
+            self.annotations.append(annotation)
+            self.current_image_index += 1
+            self.current_class = None
+            if self.current_image_index < len(self.image_files):
+                self.display_image() 
+            else:
+                self.save_annotations_to_file()
+                self.root.quit()
+        elif event.char == 'q':
+            self.save_annotations_to_file()
+            self.root.quit()
+
+    def save_annotations_to_file(self):
+        if os.path.isdir(os.path.dirname(self.output_file)) == False:
+            os.makedirs(os.path.dirname(self.output_file))
+
+        with open(self.output_file, 'w') as f:
+            json.dump(self.annotations, f, indent=4)
+    
+    def run(self):
+        self.root.mainloop()
+
+def classifierExplainer():
+    explanation = """
+The script is running in classification mode. This mode allows you to classify images based on the supplied classes.
+
+    Instructions:
+        Click on the class buttons to assign a label to the current image
+        Press 'n' to move to the next image 
+            - do this if you are done annotating the current image
+        Press 'q' to quit the annotation process 
+            - this will save the annotations and exit the script
+    """
+    print(explanation)
+    return

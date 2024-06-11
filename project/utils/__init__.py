@@ -1,4 +1,5 @@
-import os, requests
+import os
+import requests
 
 from PIL import Image
 from io import BytesIO
