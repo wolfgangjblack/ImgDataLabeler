@@ -25,18 +25,27 @@ def main(args):
     """
    
     image_list = get_image_list(args.image_dir)
+    
+    if len(image_list) == 0:
+        raise ValueError("No images found in the specified directory.")
+    
     output = os.path.join(args.output_dir, args.output_file)
+
     if args.mode == 'boundingbox':
         boundingBoxExplainer()
         annotator = BoundingBoxAnnotator(image_list, output, args.classes)
+    
     elif args.mode == 'classifier':
         classifierExplainer()
         annotator = ClassifierAnnotator(image_list, output, args.classes)
+    
     else:
         raise NotImplementedError("Invalid mode. Please choose either 'boundingbox' or 'classifier'.")
+    
     annotator.run()
 
 if __name__ == "__main__":
+    
     parser = argparse.ArgumentParser(description='Manual Image/Bounding Box Annotation Tool')
     parser.add_argument('--mode', type=str, default='boundingbox', help='Mode of annotation (boundingBox or Classification)')
     parser.add_argument('--image_dir', type=str, default='./data/testimgs/', help='Directory of images to process')

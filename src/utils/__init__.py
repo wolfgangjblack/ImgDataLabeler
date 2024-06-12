@@ -30,6 +30,16 @@ class BoundingBoxAnnotator:
         self.current_class_index = 0
         self.current_class = classes[0]
 
+        self.root = tk.Tk()
+        self.root.withdraw()
+
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+
+        # Calc the image display
+        self.image_width = int(min(self.screen_width * 0.5, 600))
+        self.image_height = int(min(self.screen_height * 0.5, 600))
+
         cv2.namedWindow('Image')
         cv2.setMouseCallback('Image', self.draw_bbox)
 
@@ -153,6 +163,7 @@ The script is running in bounding box mode. This mode allows you to draw boundin
     print(explanation)
     return
 
+
 class ClassifierAnnotator:
     def __init__(self, image_files, output_file, classes):
         self.output_file = output_file
@@ -165,11 +176,22 @@ class ClassifierAnnotator:
         self.root = tk.Tk()
         self.root.title("Classifier Annotator")
 
-        self.canvas = tk.Canvas(self.root, width=800, height=850) # Fixed size canvas
+        # Get screen dimensions
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+
+        # Get a new resize value based on screen dimensions
+        self.image_width = int(min(self.screen_width * 0.5, 600))
+        self.image_height = int(min(self.screen_height * 0.5, 600))
+        self.text_size = 50
+
+
+        self.canvas = tk.Canvas(self.root, width=self.image_width, height=self.image_height+self.text_size)  # Fixed size canvas
         self.canvas.pack()
-        
+
         self.button_frame = tk.Frame(self.root)
         self.button_frame.pack()
+
 
         self.buttons = []
         for cls in classes:
@@ -194,12 +216,12 @@ class ClassifierAnnotator:
     def update_image(self):
         image_path = self.image_files[self.current_image_index]
         img = Image.open(image_path)
-        img.thumbnail((800, 800))
+        img.thumbnail((self.image_width, self.image_height))
         
-        ##Resizing the image
-        canvas_image = Image.new("RGB", (800, 800), (255, 255, 255))
+        # Resizing the image
+        canvas_image = Image.new("RGB", (self.image_width, self.image_height), (255, 255, 255))
         img_width, img_height = img.size
-        offset = ((800 - img_width) // 2, (800 - img_height) // 2)
+        offset = ((self.image_width - img_width) // 2, (self.image_height - img_height) // 2)
         canvas_image.paste(img, offset)
         
         self.img_tk = ImageTk.PhotoImage(canvas_image)
@@ -225,6 +247,7 @@ class ClassifierAnnotator:
         self.current_image_index += 1
         if self.current_image_index < len(self.image_files):
             self.update_image()
+            self.pbar.update(1)
         else:
             self.save_annotations_to_file()
             self.root.destroy()
@@ -242,7 +265,18 @@ class ClassifierAnnotator:
             json.dump(self.annotations, f, indent=4)
 
     def run(self):
+        self.pbar = tqdm(total=len(self.image_files), desc="Annotating images")
+        self.root.after(100, self.update_pbar)  # Update progress bar every 100 ms
         self.root.mainloop()
+        self.pbar.close()
+
+    def update_pbar(self):
+        if self.current_image_index < len(self.image_files):
+            self.pbar.update(0)
+            update_cadence = int(0.01*len(self.image_files)) 
+            self.root.after(update_cadence, self.update_pbar)
+
+
 
 def classifierExplainer():
     explanation = """
